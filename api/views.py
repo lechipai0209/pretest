@@ -2,7 +2,7 @@ from django.shortcuts import render
 from django.http import HttpResponseBadRequest, JsonResponse, HttpResponse
 from rest_framework.decorators import api_view
 from decimal import Decimal, InvalidOperation
-from api.models import Order
+from api.models import Order, Product
 # Create your views here.
 
 def health_check(request):
@@ -10,18 +10,20 @@ def health_check(request):
 
 ACCEPTED_TOKEN = ('omni_pretest_token')
 
-def require_api_token(view_func):
-    def _wrapped_view(request, *args, **kwargs):
-        auth_header = request.headers.get('Authorization')
-        if not auth_header or not auth_header.startswith("Bearer "):
-            return HttpResponseBadRequest('Missing or invalid Authorization header')
+def require_api_token(tokens):
+    def decorator(view_func):
+        def _wrapped_view(request, *args, **kwargs):
+            auth_header = request.headers.get('Authorization')
+            if not auth_header or not auth_header.startswith("Bearer "):
+                return HttpResponseBadRequest('Missing or invalid Authorization header')
 
-        token = auth_header.split(" ")[1]
-        if token != ACCEPTED_TOKEN:
-            return HttpResponseBadRequest('Invalid Access Token')
+            token = auth_header.split(" ")[1]
+            if token not in tokens :
+                return HttpResponseBadRequest('Invalid Access Token')
 
-        return view_func(request, *args, **kwargs)
-    return _wrapped_view
+            return view_func(request, *args, **kwargs)
+        return _wrapped_view
+    return decorator
 
 
 @api_view(['POST'])
