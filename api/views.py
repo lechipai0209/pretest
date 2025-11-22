@@ -10,8 +10,22 @@ def health_check(request):
 
 ACCEPTED_TOKEN = ('omni_pretest_token')
 
+def require_api_token(view_func):
+    def _wrapped_view(request, *args, **kwargs):
+        auth_header = request.headers.get('Authorization')
+        if not auth_header or not auth_header.startswith("Bearer "):
+            return HttpResponseBadRequest('Missing or invalid Authorization header')
+
+        token = auth_header.split(" ")[1]
+        if token != ACCEPTED_TOKEN:
+            return HttpResponseBadRequest('Invalid Access Token')
+
+        return view_func(request, *args, **kwargs)
+    return _wrapped_view
+
 
 @api_view(['POST'])
+@require_api_token
 def import_order(request):
 
     total_price = request.data.get('total_price')
