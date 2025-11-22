@@ -1,7 +1,8 @@
 from django.contrib import admin
 from django.urls import path
-from api.views import import_order
+from api.views import import_order, health_check
 
 urlpatterns = [
-    path('import-order/', import_order)
+    path('import-order/', import_order),
+    path('health-check/', health_check),
 ]
