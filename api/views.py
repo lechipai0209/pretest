@@ -100,3 +100,28 @@ def import_product(request):
         "name": product.name,
         "price": str(product.price)
     }, status=200)
+
+# clients get all products
+@api_view(['GET'])
+@require_api_token([ACCEPTED_TOKEN, SUPERUSER_TOKEN])
+def get_products(request):
+
+    products = Product.objects.all()
+    return JsonResponse([{
+        "id": product.id,
+        "name": product.name,
+        "price": str(product.price)
+    } for product in products], safe=False)
+
+@api_view(['GET'])
+@require_api_token([SUPERUSER_TOKEN])
+def get_orders(request):
+    orders = Order.objects.all()
+    return JsonResponse([{
+        "order_number": order.order_number,
+        "product_id": order.product.id,
+        "product_name": order.product.name,
+        "product_amount": order.product_amount,
+        "total_price": order.total_price,
+        "created_time": order.created_time,
+    } for order in orders], safe=False)
