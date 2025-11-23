@@ -9,6 +9,7 @@ def health_check(request):
     return HttpResponse('Hello world')
 
 ACCEPTED_TOKEN = ('omni_pretest_token')
+SUPERUSER_TOKEN = ('omni_pretest_superuser_token')
 
 def require_api_token(tokens):
     def decorator(view_func):
@@ -69,6 +70,7 @@ def import_order(request):
         "order_number": order.order_number,
         "product_id": product.id,
         "product_name": product.name,
+        "product_price": product.price,
         "product_amount": order.product_amount,
         "total_price": order.total_price,
         "created_time": order.created_time,
@@ -121,6 +123,7 @@ def get_orders(request):
         "order_number": order.order_number,
         "product_id": order.product.id,
         "product_name": order.product.name,
+        "product_price": order.product.price,
         "product_amount": order.product_amount,
         "total_price": order.total_price,
         "created_time": order.created_time,
