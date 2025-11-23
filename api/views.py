@@ -3,8 +3,23 @@ from django.http import HttpResponseBadRequest, JsonResponse, HttpResponse
 from rest_framework.decorators import api_view
 from decimal import Decimal, InvalidOperation
 from api.models import Order, Product
+from drf_yasg.utils import swagger_auto_schema
+from drf_yasg import openapi
 # Create your views here.
 
+@swagger_auto_schema(
+    method='get',
+    operation_summary='Health check',
+    responses={
+        200: openapi.Response(
+            description='Service is running',
+            examples={
+                "application/json": "Hello world"
+            }
+        )
+    }
+)
+@api_view(['GET'])
 def health_check(request):
     return HttpResponse('Hello world')
 
@@ -28,6 +43,52 @@ def require_api_token(tokens):
 
 
 # clients make orders
+@swagger_auto_schema(
+    method='post',
+    operation_summary='Create order for a product',
+    request_body=openapi.Schema(
+        type=openapi.TYPE_OBJECT,
+        properties={
+            'product_id': openapi.Schema(
+                type=openapi.TYPE_INTEGER,
+                description='Product ID (must be a positive integer)',
+                example=1
+            ),
+            'product_amount': openapi.Schema(
+                type=openapi.TYPE_INTEGER,
+                description='Amount of product to order (must be greater than 0)',
+                example=5
+            ),
+        },
+        required=['product_id', 'product_amount']
+    ),
+    responses={
+        200: openapi.Response(
+            description='Order created successfully',
+            examples={
+                "application/json": {
+                    "message": "Order imported successfully",
+                    "order_number": 1,
+                    "product_id": 1,
+                    "product_name": "iPhone 15",
+                    "product_price": "29900.00",
+                    "product_amount": 5,
+                    "total_price": "149500.00",
+                    "created_time": "2025-11-23T12:34:56Z"
+                }
+            }
+        ),
+        400: openapi.Response(
+            description='Bad request',
+            examples={
+                "application/json": {
+                    "error": "product_id is required / product_id must be a positive integer / product_amount must be greater than 0 / Product not found"
+                }
+            }
+        )
+    },
+    security=[{'Bearer': []}]
+)
 @api_view(['POST'])
 @require_api_token([ACCEPTED_TOKEN, SUPERUSER_TOKEN])
 def import_order(request):
@@ -79,6 +140,47 @@ def import_order(request):
 
 
 # superuser add products
+@swagger_auto_schema(
+    method='post',
+    operation_summary='Import product (superuser only)',
+    request_body=openapi.Schema(
+        type=openapi.TYPE_OBJECT,
+        properties={
+            'name': openapi.Schema(
+                type=openapi.TYPE_STRING,
+                description='Product name',
+                example='iPhone 15'
+            ),
+            'price': openapi.Schema(
+                type=openapi.TYPE_NUMBER,
+                description='Product price (must be greater than 0)',
+                example=29900.00
+            ),
+        },
+        required=['name', 'price']
+    ),
+    responses={
+        200: openapi.Response(
+            description='Product created successfully',
+            examples={
+                "application/json": {
+                    "id": 1,
+                    "name": "iPhone 15",
+                    "price": "29900.00"
+                }
+            }
+        ),
+        400: openapi.Response(
+            description='Bad request',
+            examples={
+                "application/json": {
+                    "error": "Product name is required / Price must be greater than 0 / Invalid price value"
+                }
+            }
+        )
+    },
+    security=[{'Bearer': []}]
+)
 @api_view(['POST'])
 @require_api_token([SUPERUSER_TOKEN])
 def import_product(request):
@@ -104,6 +206,31 @@ def import_product(request):
     }, status=200)
 
 # clients get all products
+@swagger_auto_schema(
+    method='get',
+    operation_summary='Get all products',
+    responses={
+        200: openapi.Response(
+            description='List of all products',
+            examples={
+                "application/json": [
+                    {
+                        "id": 1,
+                        "name": "iPhone 15",
+                        "price": "29900.00"
+                    }
+                ]
+            }
+        ),
+        400: openapi.Response(
+            description='Bad request',
+            examples={
+                "application/json": "Missing or invalid Authorization header / Invalid Access Token"
+            }
+        )
+    },
+    security=[{'Bearer': []}]
+)
 @api_view(['GET'])
 @require_api_token([ACCEPTED_TOKEN, SUPERUSER_TOKEN])
 def get_products(request):
@@ -115,6 +242,36 @@ def get_products(request):
         "price": str(product.price)
     } for product in products], safe=False)
 
+# superuser get all orders
+@swagger_auto_schema(
+    method='get',
+    operation_summary='Get all orders (superuser only)',
+    responses={
+        200: openapi.Response(
+            description='List of all orders',
+            examples={
+                "application/json": [
+                    {
+                        "order_number": 1,
+                        "product_id": 1,
+                        "product_name": "iPhone 15",
+                        "product_price": "29900.00",
+                        "product_amount": 5,
+                        "total_price": "149500.00",
+                        "created_time": "2025-11-23T12:34:56Z"
+                    }
+                ]
+            }
+        ),
+        400: openapi.Response(
+            description='Bad request',
+            examples={
+                "application/json": "Missing or invalid Authorization header / Invalid Access Token"
+            }
+        )
+    },
+    security=[{'Bearer': []}]
+)
 @api_view(['GET'])
 @require_api_token([SUPERUSER_TOKEN])
 def get_orders(request):
