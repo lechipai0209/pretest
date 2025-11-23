@@ -5,6 +5,9 @@ from decimal import Decimal, InvalidOperation
 from api.models import Order, Product
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
+import logging
+
+logger = logging.getLogger('api')
 # Create your views here.
 
 @swagger_auto_schema(
@@ -31,10 +34,12 @@ def require_api_token(tokens):
         def _wrapped_view(request, *args, **kwargs):
             auth_header = request.headers.get('Authorization')
             if not auth_header or not auth_header.startswith("Bearer "):
+                logger.warning(f'Authentication failed: Missing or invalid Authorization header from {request.META.get("REMOTE_ADDR")}')
                 return HttpResponseBadRequest('Missing or invalid Authorization header')
 
             token = auth_header.split(" ")[1]
             if token not in tokens :
+                logger.warning(f'Authentication failed: Invalid token from {request.META.get("REMOTE_ADDR")}')
                 return HttpResponseBadRequest('Invalid Access Token')
 
             return view_func(request, *args, **kwargs)
@@ -116,6 +121,7 @@ def import_order(request):
     try:
         product = Product.objects.get(id=product_id)
     except Product.DoesNotExist:
+        logger.error(f'Order creation failed: Product {product_id} not found')
         return JsonResponse({"error": "Product not found"}, status=400)
 
     total_price = product.price * product_amount
@@ -125,6 +131,8 @@ def import_order(request):
         product_amount=product_amount,
         total_price=total_price
     )
+
+    logger.info(f'Order created: order_number={order.order_number}, product={product.name}, amount={product_amount}, total_price={total_price}')
 
     return JsonResponse({
         "message": "Order imported successfully",
@@ -195,9 +203,12 @@ def import_product(request):
         if price <= 0:
             return JsonResponse({"error": "Price must be greater than 0"}, status=400)
     except (InvalidOperation, TypeError):
+        logger.error(f'Product creation failed: Invalid price value "{price}"')
         return JsonResponse({"error": "Invalid price value"}, status=400)
 
     product = Product.objects.create(name=name.strip(), price=price)
+
+    logger.info(f'Product created: id={product.id}, name={product.name}, price={product.price}')
 
     return JsonResponse({
         "id": product.id,
@@ -236,6 +247,7 @@ def import_product(request):
 def get_products(request):
 
     products = Product.objects.all()
+    logger.info(f'Products list retrieved: {products.count()} products')
     return JsonResponse([{
         "id": product.id,
         "name": product.name,
@@ -276,6 +288,7 @@ def get_products(request):
 @require_api_token([SUPERUSER_TOKEN])
 def get_orders(request):
     orders = Order.objects.all()
+    logger.info(f'Orders list retrieved: {orders.count()} orders')
     return JsonResponse([{
         "order_number": order.order_number,
         "product_id": order.product.id,

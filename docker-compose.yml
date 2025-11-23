@@ -19,6 +19,7 @@ services:
       dockerfile: Dockerfile
     volumes:
       - .:/code
+      - ./logs:/code/logs
     ports:
       - "8008:8008"
     environment:

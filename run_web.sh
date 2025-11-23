@@ -1,5 +1,6 @@
 #!/bin/sh
 
+mkdir -p /code/logs
 sh wait-for-postgres.sh db
 python manage.py makemigrations api
 python manage.py migrate
